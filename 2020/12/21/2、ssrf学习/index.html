@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","images":"/images","scheme":"Pisces","version":"8.1.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}};
+  </script>
+<meta name="description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;漏洞全称叫服务端请求伪造，不难理解主要是由于代码设计不规范，导致服务器端去请求了内网（其他）意料之外的资源。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ssrf学习">
+<meta property="og:url" content="http://example.com/2020/12/21/2%E3%80%81ssrf%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="g1aze&#39;s blog">
+<meta property="og:description" content="&amp;ensp;&amp;ensp;&amp;ensp;&amp;ensp;漏洞全称叫服务端请求伪造，不难理解主要是由于代码设计不规范，导致服务器端去请求了内网（其他）意料之外的资源。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/ssrf-1.png">
+<meta property="article:published_time" content="2020-12-21T12:51:36.000Z">
+<meta property="article:modified_time" content="2020-12-23T06:00:20.065Z">
+<meta property="article:author" content="g1aze">
+<meta property="article:tag" content="ssrf">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/ssrf-1.png">
+
+
+<link rel="canonical" href="http://example.com/2020/12/21/2%E3%80%81ssrf%E5%AD%A6%E4%B9%A0/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+<title>ssrf学习 | g1aze's blog</title>
+  
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">g1aze's blog</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li>
+        <li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+        <li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li>
+        <li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+        <li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+        <li class="menu-item menu-item-schedule"><a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>日程表</a></li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <section class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#php%E7%9A%84curl%E5%BA%93"><span class="nav-number">1.</span> <span class="nav-text">php的curl库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#file-get-contens%E9%80%A0%E6%88%90%E7%9A%84ssrf"><span class="nav-number">2.</span> <span class="nav-text">file_get_contens造成的ssrf</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fsockopen%E9%80%A0%E6%88%90%E7%9A%84ssrf"><span class="nav-number">3.</span> <span class="nav-text">fsockopen造成的ssrf</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ssrf%E7%BB%95%E8%BF%87"><span class="nav-number">4.</span> <span class="nav-text">ssrf绕过</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="nav-number">5.</span> <span class="nav-text">一些注意事项</span></a></li></ol></div>
+        </section>
+        <!--/noindex-->
+
+        <section class="site-overview-wrap sidebar-panel">
+          <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">g1aze</p>
+  <div class="site-description" itemprop="description">奔赴山海，保持热爱</div>
+</div>
+<div class="site-state-wrap site-overview-item animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+        </section>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/12/21/2%E3%80%81ssrf%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="g1aze">
+      <meta itemprop="description" content="奔赴山海，保持热爱">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="g1aze's blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ssrf学习
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2020-12-21 20:51:36" itemprop="dateCreated datePublished" datetime="2020-12-21T20:51:36+08:00">2020-12-21</time>
+    </span>
+      <span class="post-meta-item">
+        <span class="post-meta-item-icon">
+          <i class="far fa-calendar-check"></i>
+        </span>
+        <span class="post-meta-item-text">更新于</span>
+        <time title="修改时间：2020-12-23 14:00:20" itemprop="dateModified" datetime="2020-12-23T14:00:20+08:00">2020-12-23</time>
+      </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/web%E5%AE%89%E5%85%A8/" itemprop="url" rel="index"><span itemprop="name">web安全</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>&ensp;&ensp;&ensp;&ensp;漏洞全称叫服务端请求伪造，不难理解主要是由于代码设计不规范，导致服务器端去请求了内网（其他）意料之外的资源。</p>
+<a id="more"></a>
+
+<h3 id="php的curl库"><a href="#php的curl库" class="headerlink" title="php的curl库"></a>php的curl库</h3><p>php支持libcurl库与各种的服务器使用不同类型的协议进行连接通讯，为了更清楚的了解这个洞，简单学习了下php curl库的使用。</p>
+<p><strong>1、使用cURL发送请求的基本流程</strong><br>不出意外打开就是百度</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$url &#x3D; &quot;http:&#x2F;&#x2F;www.baidu.com&quot;;</span><br><span class="line">$test &#x3D; curl_init($url);	&#x2F;&#x2F;初始化连接句柄</span><br><span class="line">curl_setopt();		&#x2F;&#x2F;设置curl选项（这个另说）</span><br><span class="line">curl_exec($test);	&#x2F;&#x2F;执行一个curl会话</span><br><span class="line">curl_close($test);	&#x2F;&#x2F;关闭一个curl会话</span><br></pre></td></tr></table></figure>
+<p><strong>2、初始化一个新的cURL会话并获取一个网页</strong><br>这个没什么好说的，直接参考菜鸟教程：<a target="_blank" rel="noopener" href="https://www.runoob.com/php/func-curl_setopt.html">https://www.runoob.com/php/func-curl_setopt.html</a></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//初始化curl</span></span><br><span class="line"><span class="variable">$ch</span> = curl_init();</span><br><span class="line"><span class="comment">//设置抓取的url</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>,CURLOPT_URL,<span class="string">&#x27;http://www.baidu.com&#x27;</span>);</span><br><span class="line"><span class="comment">//设置头文件作为数据流输出</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>, CURLOPT_HEADER, <span class="literal">false</span>);</span><br><span class="line"><span class="comment">//设置获取的信息以文件流的形式返回，而不是直接输出。</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>, CURLOPT_RETURNTRANSFER, <span class="literal">true</span>);</span><br><span class="line"><span class="comment">//执行命令</span></span><br><span class="line"><span class="variable">$data</span> = curl_exec(<span class="variable">$ch</span>);</span><br><span class="line"><span class="comment">//关闭URL请求</span></span><br><span class="line">curl_close(<span class="variable">$ch</span>);</span><br><span class="line"><span class="comment">//显示获得的数据</span></span><br><span class="line">print_r(<span class="variable">$data</span>);</span><br></pre></td></tr></table></figure>
+<p>通过上面直接拼接制作个ssrf漏洞</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//初始化curl</span></span><br><span class="line"><span class="variable">$ch</span> = curl_init();</span><br><span class="line"><span class="comment">//设置抓取的url</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>,CURLOPT_URL,<span class="variable">$_GET</span>[<span class="string">&#x27;url&#x27;</span>]);</span><br><span class="line"><span class="comment">//设置头文件作为数据流输出</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>, CURLOPT_HEADER, <span class="literal">false</span>);</span><br><span class="line"><span class="comment">//设置获取的信息以文件流的形式返回，而不是直接输出。</span></span><br><span class="line">curl_setopt(<span class="variable">$ch</span>, CURLOPT_RETURNTRANSFER, <span class="literal">true</span>);</span><br><span class="line"><span class="comment">//执行命令</span></span><br><span class="line"><span class="variable">$data</span> = curl_exec(<span class="variable">$ch</span>);</span><br><span class="line"><span class="comment">//关闭URL请求</span></span><br><span class="line">curl_close(<span class="variable">$ch</span>);</span><br><span class="line"><span class="comment">//显示获得的数据</span></span><br><span class="line">print_r(<span class="variable">$data</span>);</span><br></pre></td></tr></table></figure>
+<p><strong>3、libcurl库支持协议利用</strong><br>然后就是常见的一些漏洞利用方式</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/lovellll/p/10409413.html">https://www.cnblogs.com/lovellll/p/10409413.html</a><br><a target="_blank" rel="noopener" href="https://blog.csdn.net/wd2011063437/article/details/82685942">https://blog.csdn.net/wd2011063437/article/details/82685942</a></p>
+<h3 id="file-get-contens造成的ssrf"><a href="#file-get-contens造成的ssrf" class="headerlink" title="file_get_contens造成的ssrf"></a>file_get_contens造成的ssrf</h3><p>没错php忘得差不多了，还得是菜鸟教程来了解下<br><br><img src="/images/ssrf-1.png" alt="avatar"><br>很显然他能对文件内容进行读取，同时如果是一个url也一样</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">echo</span> file_get_contens(<span class="string">&#x27;http://www.baidu.com&#x27;</span>);		<span class="comment">//web页面会显示百度</span></span><br></pre></td></tr></table></figure>
+<p>还可以用伪协议的形式,所以你懂的</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">echo</span> file_get_contents(<span class="string">&#x27;php://filter/read=convert.base64-encode/resource=123.txt&#x27;</span>);</span><br><span class="line"><span class="keyword">echo</span> file_get_contents(<span class="string">&#x27;php://input&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/l0nmar/p/13877678.html">https://www.cnblogs.com/l0nmar/p/13877678.html</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/159081587">https://zhuanlan.zhihu.com/p/159081587</a><br><a target="_blank" rel="noopener" href="https://www.t00ls.net/articles-41070.html">https://www.t00ls.net/articles-41070.html</a><br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/101058/">https://www.anquanke.com/post/id/101058/</a></p>
+<h3 id="fsockopen造成的ssrf"><a href="#fsockopen造成的ssrf" class="headerlink" title="fsockopen造成的ssrf"></a>fsockopen造成的ssrf</h3><p>同样是网络资源请求，具体可以参考<a target="_blank" rel="noopener" href="https://www.php.net/manual/zh/function.fsockopen.php">https://www.php.net/manual/zh/function.fsockopen.php</a></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Getfile</span>(<span class="params"><span class="variable">$host</span>, <span class="variable">$port</span>, <span class="variable">$link</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$fp</span> = fsockopen(<span class="variable">$host</span>, intval(<span class="variable">$port</span>), <span class="variable">$errno</span>, <span class="variable">$errstr</span>, <span class="number">30</span>);</span><br><span class="line">    <span class="keyword">if</span>(!<span class="variable">$fp</span>)&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;<span class="subst">$errstr</span> (error number <span class="subst">$errno</span>) \n&quot;</span>;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        <span class="variable">$out</span> = <span class="string">&quot;GET <span class="subst">$link</span> HTTP/1.1\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;HOST <span class="subst">$host</span> \r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;Connection: Close\r\n\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;\r\n&quot;</span>;</span><br><span class="line">        fwrite(<span class="variable">$fp</span>, <span class="variable">$out</span>);</span><br><span class="line">        <span class="variable">$content</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">        <span class="keyword">while</span>(!feof(<span class="variable">$fp</span>))&#123;</span><br><span class="line">            <span class="variable">$contents</span> .= fgets(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        fclose(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$contents</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/s1awwhy/p/12845255.html">https://www.cnblogs.com/s1awwhy/p/12845255.html</a></p>
+<h3 id="ssrf绕过"><a href="#ssrf绕过" class="headerlink" title="ssrf绕过"></a>ssrf绕过</h3><p><strong>检查是否为内网IP</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">192.168.0.0‐‐192.168.255.255</span><br><span class="line">172.16.0.0‐‐172.31.255.255</span><br><span class="line">10.0.0.0‐‐10.255.255.255</span><br></pre></td></tr></table></figure>
+<p>可以尝试讲ip进行进制转换</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">十六进制：0x7f000001</span><br><span class="line">八进制：0177.0.0.1</span><br><span class="line">十进制：2130706433</span><br></pre></td></tr></table></figure>
+<p><strong>正则匹配指定域名</strong><br>很多时候会限制，只允许访问指定域名，可以尝试url跳转的方式可以绕过正则匹配</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;www.ncu.edu.cn@www.baidu.com</span><br></pre></td></tr></table></figure>
+<p>安全客这篇译文也还可以:<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/101058/">https://www.anquanke.com/post/id/101058/</a><br>flying- - - - - - - - - - - - - -  ^-^</p>
+<p><strong>判断host头是否为内网ip</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">www.127.0.0.1.xip.io #可指定任意解析地址</span><br></pre></td></tr></table></figure>
+
+<h3 id="一些注意事项"><a href="#一些注意事项" class="headerlink" title="一些注意事项"></a>一些注意事项</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">大部分 PHP 并不会开启 fopen 的 gopher wrapper</span><br><span class="line">file_get_contents 的 gopher 协议不能 URLencode</span><br><span class="line">file_get_contents 关于 Gopher 的 302 跳转有 bug，导致利用失败</span><br><span class="line">curl&#x2F;libcurl 7.43 上 gopher 协议存在 bug（%00 截断），经测试 7.49 可用</span><br><span class="line">curl_exec() &#x2F;&#x2F;默认不跟踪跳转，</span><br><span class="line">file_get_contents() &#x2F;&#x2F; file_get_contents支持php:&#x2F;&#x2F;input协议</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ssrf/" rel="tag"># ssrf</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/25/1%E3%80%81BAT%20XSS%E5%AE%9E%E4%BE%8B%E5%AD%A6%E4%B9%A0/" rel="prev" title="BAT XSS实例学习">
+                  <i class="fa fa-chevron-left"></i> BAT XSS实例学习
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/12/22/3%E3%80%81PHP-Audit-Labs%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" rel="next" title="PHP-Audit-Labs项目学习">
+                  PHP-Audit-Labs项目学习 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">g1aze</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginModelPath":"assets/","model":{"jsonPath":"/live2dw/assets/hijiki.model.json"},"display":{"position":"right","width":150,"height":315},"mobile":{"show":true},"react":{"opacityDefault":0.7,"opacityOnHover":0.8},"log":false,"pluginJsPath":"lib/","pluginRootPath":"live2dw/","tagMode":false});</script></body>
+</html>
