@@ -32,7 +32,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://example.com/images/ssrf-1.png">
 <meta property="article:published_time" content="2020-12-21T12:51:36.000Z">
-<meta property="article:modified_time" content="2020-12-23T06:00:20.065Z">
+<meta property="article:modified_time" content="2021-03-20T16:12:32.823Z">
 <meta property="article:author" content="g1aze">
 <meta property="article:tag" content="ssrf">
 <meta name="twitter:card" content="summary">
@@ -169,7 +169,7 @@
         <section class="site-overview-wrap sidebar-panel">
           <div class="site-author site-overview-item animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
   <p class="site-author-name" itemprop="name">g1aze</p>
-  <div class="site-description" itemprop="description">奔赴山海，保持热爱</div>
+  <div class="site-description" itemprop="description">做个快乐的安服仔他不香吗?</div>
 </div>
 <div class="site-state-wrap site-overview-item animated">
   <nav class="site-state">
@@ -183,13 +183,13 @@
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -233,7 +233,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
       <meta itemprop="name" content="g1aze">
-      <meta itemprop="description" content="奔赴山海，保持热爱">
+      <meta itemprop="description" content="做个快乐的安服仔他不香吗?">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -259,7 +259,7 @@
           <i class="far fa-calendar-check"></i>
         </span>
         <span class="post-meta-item-text">更新于</span>
-        <time title="修改时间：2020-12-23 14:00:20" itemprop="dateModified" datetime="2020-12-23T14:00:20+08:00">2020-12-23</time>
+        <time title="修改时间：2021-03-21 00:12:32" itemprop="dateModified" datetime="2021-03-21T00:12:32+08:00">2021-03-21</time>
       </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -298,7 +298,6 @@
 <p>还可以用伪协议的形式,所以你懂的</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">echo</span> file_get_contents(<span class="string">&#x27;php://filter/read=convert.base64-encode/resource=123.txt&#x27;</span>);</span><br><span class="line"><span class="keyword">echo</span> file_get_contents(<span class="string">&#x27;php://input&#x27;</span>);</span><br></pre></td></tr></table></figure>
 
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/l0nmar/p/13877678.html">https://www.cnblogs.com/l0nmar/p/13877678.html</a><br><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/159081587">https://zhuanlan.zhihu.com/p/159081587</a><br><a target="_blank" rel="noopener" href="https://www.t00ls.net/articles-41070.html">https://www.t00ls.net/articles-41070.html</a><br><a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/101058/">https://www.anquanke.com/post/id/101058/</a></p>
 <h3 id="fsockopen造成的ssrf"><a href="#fsockopen造成的ssrf" class="headerlink" title="fsockopen造成的ssrf"></a>fsockopen造成的ssrf</h3><p>同样是网络资源请求，具体可以参考<a target="_blank" rel="noopener" href="https://www.php.net/manual/zh/function.fsockopen.php">https://www.php.net/manual/zh/function.fsockopen.php</a></p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">Getfile</span>(<span class="params"><span class="variable">$host</span>, <span class="variable">$port</span>, <span class="variable">$link</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$fp</span> = fsockopen(<span class="variable">$host</span>, intval(<span class="variable">$port</span>), <span class="variable">$errno</span>, <span class="variable">$errstr</span>, <span class="number">30</span>);</span><br><span class="line">    <span class="keyword">if</span>(!<span class="variable">$fp</span>)&#123;</span><br><span class="line">        <span class="keyword">echo</span> <span class="string">&quot;<span class="subst">$errstr</span> (error number <span class="subst">$errno</span>) \n&quot;</span>;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        <span class="variable">$out</span> = <span class="string">&quot;GET <span class="subst">$link</span> HTTP/1.1\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;HOST <span class="subst">$host</span> \r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;Connection: Close\r\n\r\n&quot;</span>;</span><br><span class="line">        <span class="variable">$out</span> .= <span class="string">&quot;\r\n&quot;</span>;</span><br><span class="line">        fwrite(<span class="variable">$fp</span>, <span class="variable">$out</span>);</span><br><span class="line">        <span class="variable">$content</span> = <span class="string">&#x27;&#x27;</span>;</span><br><span class="line">        <span class="keyword">while</span>(!feof(<span class="variable">$fp</span>))&#123;</span><br><span class="line">            <span class="variable">$contents</span> .= fgets(<span class="variable">$fp</span>, <span class="number">1024</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        fclose(<span class="variable">$fp</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$contents</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -310,7 +309,7 @@
 <p><strong>正则匹配指定域名</strong><br>很多时候会限制，只允许访问指定域名，可以尝试url跳转的方式可以绕过正则匹配</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http:&#x2F;&#x2F;www.ncu.edu.cn@www.baidu.com</span><br></pre></td></tr></table></figure>
 <p>安全客这篇译文也还可以:<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/101058/">https://www.anquanke.com/post/id/101058/</a><br>flying- - - - - - - - - - - - - -  ^-^</p>
-<p><strong>判断host头是否为内网ip</strong></p>
+<p><strong>绕过判断host头是否为内网ip</strong></p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">www.127.0.0.1.xip.io #可指定任意解析地址</span><br></pre></td></tr></table></figure>
 
 <h3 id="一些注意事项"><a href="#一些注意事项" class="headerlink" title="一些注意事项"></a>一些注意事项</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">大部分 PHP 并不会开启 fopen 的 gopher wrapper</span><br><span class="line">file_get_contents 的 gopher 协议不能 URLencode</span><br><span class="line">file_get_contents 关于 Gopher 的 302 跳转有 bug，导致利用失败</span><br><span class="line">curl&#x2F;libcurl 7.43 上 gopher 协议存在 bug（%00 截断），经测试 7.49 可用</span><br><span class="line">curl_exec() &#x2F;&#x2F;默认不跟踪跳转，</span><br><span class="line">file_get_contents() &#x2F;&#x2F; file_get_contents支持php:&#x2F;&#x2F;input协议</span><br></pre></td></tr></table></figure>
@@ -334,7 +333,7 @@
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2020/12/22/3%E3%80%81PHP-Audit-Labs%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" rel="next" title="PHP-Audit-Labs项目学习">
+                <a href="/2021/03/20/3%E3%80%81PHP-Audit-Labs%E9%A1%B9%E7%9B%AE%E5%AD%A6%E4%B9%A0/" rel="next" title="PHP-Audit-Labs项目学习">
                   PHP-Audit-Labs项目学习 <i class="fa fa-chevron-right"></i>
                 </a>
             </div>
